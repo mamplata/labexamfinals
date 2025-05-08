@@ -26,21 +26,39 @@
       </div>
     </nav>
 
-    <div class="container-fluid">
+    <div class="container-fluid py-5 d-flex justify-content-center align-items-center" v-if="loading">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+    <div class="container-fluid" v-else>
       <component :is="currentComponent" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import BookList from './components/BookList.vue';
 import TransactionList from './components/TransactionList.vue';
 import Borrow from './components/Borrow.vue';
 import Return from './components/Return.vue';
 
 const view = ref('books');
-const isNavbarCollapsed = ref(true); // state to manage navbar collapse
+const isNavbarCollapsed = ref(true); // state to manage navbar
+const loading = ref(true); // state to manage loading spinner
+
+watch(view, () => {
+  loading.value = true;
+  setTimeout(() => {
+    loading.value = false;
+  }, 500);
+});
+
+// Initial loading
+setTimeout(() => {
+  loading.value = false;
+}, 500);
 
 const navItems = [
   { label: 'Books', view: 'books', icon: 'fas fa-book-open' },
