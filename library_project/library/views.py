@@ -28,7 +28,7 @@ class BookViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 class BorrowTransactionViewSet(viewsets.ModelViewSet):
-    queryset = BorrowTransaction.objects.select_related('book', 'user').all()
+    queryset = BorrowTransaction.objects.select_related('book', 'user').all().order_by('-id')
 
     def get_serializer_class(self):
         if self.action == 'borrow':
