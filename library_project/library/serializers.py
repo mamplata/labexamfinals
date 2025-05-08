@@ -32,3 +32,9 @@ class ReturnTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = BorrowTransaction
         fields = ['return_date']
+
+    def validate(self, data):
+        instance = self.instance
+        if instance and data['return_date'] < instance.borrow_date:
+            raise serializers.ValidationError("Return date cannot be earlier than borrow date.")
+        return data
