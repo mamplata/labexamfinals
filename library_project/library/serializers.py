@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from datetime import date
 from .models import Book, BorrowTransaction
 
 class UserSerializer(serializers.ModelSerializer):
@@ -22,6 +23,10 @@ class BorrowTransactionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = BorrowTransaction
         fields = ['user', 'book', 'borrow_date']
+    def validate_borrow_date(self, value):
+        if value > date.today():
+            raise serializers.ValidationError("Future dates are not allowed for borrowing.")
+        return value
 
 class ReturnTransactionSerializer(serializers.ModelSerializer):
     class Meta:
