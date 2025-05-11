@@ -8,7 +8,6 @@ book_list   = BookViewSet.as_view({'get': 'list', 'post': 'create'})
 book_detail = BookViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'})
 
 tx_list   = BorrowTransactionViewSet.as_view({'get': 'list'})
-tx_detail = BorrowTransactionViewSet.as_view({'get': 'retrieve'})
 
 tx_borrow = BorrowTransactionViewSet.as_view({'post': 'borrow'})
 tx_return = BorrowTransactionViewSet.as_view({'post': 'return_book'})
@@ -21,7 +20,6 @@ urlpatterns = [
     path('api/books/<int:pk>/', book_detail,  name='book-detail'),
 
     path('api/transactions/',          tx_list,    name='tx-list'),
-    path('api/transactions/<int:pk>/', tx_detail,  name='tx-detail'),
 
     path('api/borrow/',          tx_borrow, name='tx-borrow'),
     path('api/return/<int:pk>/', tx_return, name='tx-return'),

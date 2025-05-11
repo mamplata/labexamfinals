@@ -5,7 +5,7 @@
       <table class="table table-hover table-bordered table-striped text-center align-middle">
         <thead class="table-light">
           <tr>
-            <th>ID</th>
+            <th>#ID</th>
             <th>User</th>
             <th>Book</th>
             <th>Borrow Date</th>
@@ -17,7 +17,10 @@
           <tr v-for="tx in transactions" :key="tx.id">
             <td>{{ tx.id }}</td>
             <td>{{ userMap[tx.user] }}</td>
-            <td>{{ bookMap[tx.book] }}</td>
+            <td>
+              <span v-if="bookMap[tx.book]">{{ bookMap[tx.book] }}</span>
+              <span v-else class="text-muted fst-italic">Not available</span>
+            </td>
             <td>{{ tx.borrow_date }}</td>
             <td>
               <span v-if="tx.return_date">{{ tx.return_date }}</span>

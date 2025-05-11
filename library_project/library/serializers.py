@@ -15,8 +15,7 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'author', 'isbn', 'copies_available', 'is_borrowed']
 
     def get_is_borrowed(self, obj):
-        # returns True if there is any BorrowTransaction with status='borrowed'
-        return obj.borrowtransaction_set.filter(status='borrowed').exists()
+        return obj.transactions.filter(status='borrowed').exists()
 
 class BorrowTransactionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,9 +27,12 @@ class BorrowTransactionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = BorrowTransaction
         fields = ['user', 'book', 'borrow_date']
+
     def validate_borrow_date(self, value):
         if value > date.today():
-            raise serializers.ValidationError("Future dates are not allowed for borrowing.")
+            raise serializers.ValidationError(
+                "Future dates are not allowed for borrowing."
+            )
         return value
 
 class ReturnTransactionSerializer(serializers.ModelSerializer):
@@ -41,5 +43,7 @@ class ReturnTransactionSerializer(serializers.ModelSerializer):
     def validate(self, data):
         instance = self.instance
         if instance and data['return_date'] < instance.borrow_date:
-            raise serializers.ValidationError("Return date cannot be earlier than borrow date.")
+            raise serializers.ValidationError(
+                "Return date cannot be earlier than borrow date."
+            )
         return data

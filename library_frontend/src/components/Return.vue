@@ -5,7 +5,6 @@
       <table class="table table-hover table-bordered table-striped text-center align-middle">
         <thead class="table-light">
           <tr>
-            <th>ID</th>
             <th>User</th>
             <th>Book</th>
             <th>Borrow Date</th>
@@ -14,7 +13,6 @@
         </thead>
         <tbody>
           <tr v-for="tx in transactions" :key="tx.id">
-            <td>{{ tx.id }}</td>
             <td>{{ userMap[tx.user] || tx.user }}</td>
             <td>{{ bookMap[tx.book] || tx.book }}</td>
             <td>{{ tx.borrow_date }}</td>

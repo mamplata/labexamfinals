@@ -23,7 +23,7 @@ class BookViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         book = self.get_object()
-        if book.borrowtransaction_set.filter(status='borrowed').exists():
+        if book.transactions.filter(status='borrowed').exists():
             return Response({"message" : "Cannot delete a book that is currently borrowed."}, status=status.HTTP_400_BAD_REQUEST)
         return super().destroy(request, *args, **kwargs)
 
