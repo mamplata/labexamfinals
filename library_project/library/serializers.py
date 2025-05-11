@@ -9,9 +9,14 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'first_name', 'last_name', 'email']
 
 class BookSerializer(serializers.ModelSerializer):
+    is_borrowed = serializers.SerializerMethodField()
     class Meta:
         model = Book
-        fields = '__all__'
+        fields = ['id', 'title', 'author', 'isbn', 'copies_available', 'is_borrowed']
+
+    def get_is_borrowed(self, obj):
+        # returns True if there is any BorrowTransaction with status='borrowed'
+        return obj.borrowtransaction_set.filter(status='borrowed').exists()
 
 class BorrowTransactionSerializer(serializers.ModelSerializer):
     class Meta:

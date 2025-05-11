@@ -4,7 +4,7 @@
       <div class="container-fluid d-flex justify-content-between align-items-center">
         <a class="navbar-brand fw-semibold fs-4 text-dark" href="#" @click.prevent="view = 'books'">
           <img src="@/assets/library_logo.png" alt="Library Logo" style="height: 65px;" />
-          Library Management System
+          <span class="d-none d-md-inline">Library Management System</span>
         </a>
         <!-- Toggler button to show or hide navbar -->
         <button class="navbar-toggler" type="button" @click="toggleNavbar"
