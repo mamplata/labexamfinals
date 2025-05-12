@@ -18,7 +18,9 @@
           </label>
           <select v-model="form.user" class="form-select" id="user" required>
             <option value="" disabled>Select user</option>
-            <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
+            <option v-for="u in users" :key="u.id" :value="u.id">
+              {{ u.username }}
+            </option>
           </select>
         </div>
 
@@ -29,7 +31,15 @@
           </label>
           <select v-model="form.book" class="form-select" id="book" required>
             <option value="" disabled>Select book</option>
-            <option v-for="b in books" :key="b.id" :value="b.id">{{ b.title }}</option>
+            <option v-for="b in books" :key="b.id" :value="b.id" :disabled="b.copies_available === 0">
+              {{ b.title }}
+              <span v-if="b.copies_available > 0">
+                ({{ b.copies_available }} available)
+              </span>
+              <span v-else>
+                (Unavailable)
+              </span>
+            </option>
           </select>
         </div>
 
@@ -54,9 +64,19 @@
 import { ref, onMounted } from 'vue';
 import { fetchUsers, fetchBooks, borrowBook } from '../services/api';
 
+// compute today's date string once
+const today = (() => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+})();
+
 const users = ref([]);
 const books = ref([]);
-const form = ref({ user: '', book: '', borrow_date: '' });
+// initialize borrow_date to today
+const form = ref({ user: '', book: '', borrow_date: today });
 const result = ref(null);
 
 onMounted(async () => {
@@ -64,61 +84,46 @@ onMounted(async () => {
   books.value = (await fetchBooks()).data;
 });
 
-// Set the max attribute of the date input to today's date
-const today = (() => {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-})();
-
-
 const submit = async () => {
   try {
     const res = await borrowBook(form.value);
-    const user = users.value.find(u => u.id === form.value.user).username;
-    const book = books.value.find(b => b.id === form.value.book).title;
-    result.value = `${user} borrowed "${book}" (Transaction #${res.data.id})`;
-    form.value = { user: '', book: '', borrow_date: '' };
 
-    // Auto-clear message after 3 seconds
-    setTimeout(() => {
-      result.value = null;
-    }, 3000);
+    // update availability in-memory
+    const idx = books.value.findIndex(b => b.id === form.value.book);
+    if (idx !== -1) books.value[idx].copies_available--;
+
+    // show success
+    const user = users.value.find(u => u.id === form.value.user).username;
+    result.value = `${user} borrowed "${books.value[idx].title}" (Transaction #${res.data.id})`;
+
+    // reset form but keep borrow_date defaulted to today
+    form.value = { user: '', book: '', borrow_date: today };
+
+    setTimeout(() => (result.value = null), 3000);
   } catch (err) {
     result.value = err.response?.data.detail || 'Error';
-
-    // Auto-clear error message after 5 seconds
-    setTimeout(() => {
-      result.value = null;
-    }, 5000);
+    setTimeout(() => (result.value = null), 5000);
   }
 };
-
 </script>
 
 <style scoped>
-/* Main container styling */
 .container {
   max-width: 800px;
   margin: auto;
 }
 
-/* Borrow book container styling */
 .borrow-book-container {
   background-color: #f3ede3;
   border-radius: 12px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Heading Style */
 h2 {
   color: #4b3e30;
   margin-bottom: 1.5rem;
 }
 
-/* Form Inputs */
 .form-select,
 .form-control {
   border-radius: 6px;
@@ -138,7 +143,6 @@ h2 {
   border: none;
 }
 
-/* Result Message */
 .alert-info {
   background-color: #f3ede3;
   color: #4b3e30;
@@ -146,7 +150,6 @@ h2 {
   transition: opacity 0.5s ease-in-out;
 }
 
-/* Fade Transition */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s;
@@ -157,8 +160,13 @@ h2 {
   opacity: 0;
 }
 
-/* Margin for spacing */
 .mb-3 {
   margin-bottom: 1.25rem;
+}
+
+/* Grey-out disabled options */
+select option:disabled {
+  color: #888;
+  font-style: italic;
 }
 </style>

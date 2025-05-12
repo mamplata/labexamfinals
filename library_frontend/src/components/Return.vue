@@ -1,29 +1,35 @@
 <template>
   <div class="container-fluid mt-4">
     <h2 class="text-dark text-center">Return Book</h2>
-    <div class="table-responsive">
-      <table class="table table-hover table-bordered table-striped text-center align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>User</th>
-            <th>Book</th>
-            <th>Borrow Date</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="tx in transactions" :key="tx.id">
-            <td>{{ userMap[tx.user] || tx.user }}</td>
-            <td>{{ bookMap[tx.book] || tx.book }}</td>
-            <td>{{ tx.borrow_date }}</td>
-            <td>
-              <button class="btn btn-sm btn-success" @click="openModal(tx)">
-                <i class="fas fa-undo me-2"></i> Return
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+    <!-- For each user group -->
+    <div v-for="group in groupedTx" :key="group.user" class="mb-5">
+      <h4 class="text-secondary">User: {{ userMap[group.user] }}</h4>
+
+      <div class="table-responsive">
+        <table class="table table-hover table-bordered table-striped text-center align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Book</th>
+              <th>Author</th>
+              <th>Borrow Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="tx in group.txs" :key="tx.id">
+              <td>{{ bookMap[tx.book] }}</td>
+              <td>{{ bookAuthorMap[tx.book] }}</td>
+              <td>{{ tx.borrow_date }}</td>
+              <td>
+                <button class="btn btn-sm btn-success" @click="openModal(tx)">
+                  <i class="fas fa-undo me-2"></i> Return
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- Return Modal -->
@@ -42,7 +48,7 @@
                   <i class="fas fa-calendar-day me-2"></i> Return Date
                 </label>
                 <input v-model="form.return_date" type="date" class="form-control" :min="selected.borrow_date"
-                  required />
+                  :max="today" required />
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -61,37 +67,63 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { fetchTransactions, fetchUsers, fetchBooks, returnBook } from '../services/api';
 import { Modal } from 'bootstrap';
+
+// compute today's date
+const today = (() => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+})();
 
 const transactions = ref([]);
 const users = ref([]);
 const books = ref([]);
 const userMap = ref({});
 const bookMap = ref({});
+const bookAuthorMap = ref({});
 const selected = ref({});
 const form = ref({ return_date: '' });
 const errorMsg = ref('');
 let modal;
 
+// load data
 onMounted(async () => {
   const [txRes, uRes, bRes] = await Promise.all([
     fetchTransactions(),
     fetchUsers(),
     fetchBooks()
   ]);
+  // only still-borrowed
   transactions.value = txRes.data.filter(tx => tx.status === 'borrowed');
   users.value = uRes.data;
   books.value = bRes.data;
   users.value.forEach(u => userMap.value[u.id] = u.username);
-  books.value.forEach(b => bookMap.value[b.id] = b.title);
+  books.value.forEach(b => {
+    bookMap.value[b.id] = b.title;
+    bookAuthorMap.value[b.id] = b.author;
+  });
   modal = new Modal(document.getElementById('returnModal'));
+});
+
+// grouping by user
+const groupedTx = computed(() => {
+  const map = {};
+  transactions.value.forEach(tx => {
+    if (!map[tx.user]) map[tx.user] = [];
+    map[tx.user].push(tx);
+  });
+  // convert to array of { user, txs }
+  return Object.entries(map).map(([user, txs]) => ({ user, txs }));
 });
 
 const openModal = (tx) => {
   selected.value = tx;
-  form.value.return_date = '';
+  form.value.return_date = today;   // default to today
   errorMsg.value = '';
   modal.show();
 };
@@ -99,6 +131,7 @@ const openModal = (tx) => {
 const submitReturn = async () => {
   try {
     await returnBook(selected.value.id, form.value);
+    // remove returned tx from list
     transactions.value = transactions.value.filter(tx => tx.id !== selected.value.id);
     modal.hide();
   } catch (e) {
@@ -117,7 +150,6 @@ h2 {
   background-color: #6c9e46;
   border: none;
 }
-
 
 .table {
   background-color: #ffffff;
