@@ -10,25 +10,43 @@ class Book(models.Model):
     def __str__(self):
         return self.title
 
+
 class BorrowTransaction(models.Model):
     STATUS_CHOICES = [
         ('borrowed', 'Borrowed'),
         ('returned', 'Returned'),
     ]
-    user        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    book        = models.ForeignKey(Book, on_delete=models.CASCADE)
-    borrow_date = models.DateField(null=False, blank=False)
+
+    user        = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    book        = models.ForeignKey(
+        Book,
+        on_delete=models.SET_NULL,  # Orphan when book is deleted :contentReference[oaicite:1]{index=1}
+        null=True,
+        blank=True,
+        related_name='transactions'
+    )
+    borrow_date = models.DateField()
     return_date = models.DateField(null=True, blank=True)
-    status      = models.CharField(max_length=10, choices=STATUS_CHOICES, default='borrowed')
+    status      = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='borrowed'
+    )
 
     def save(self, *args, **kwargs):
-        if self.pk is None and self.status == 'borrowed':
-            self.book.copies_available -= 1
-            self.book.save()
-        elif self.status == 'returned':
-            self.book.copies_available += 1
-            self.book.save()
+        # Adjust copies_available on borrow/return
+        if self._state.adding and self.status == 'borrowed' and self.book:
+            self.book.copies_available = models.F('copies_available') - 1
+            self.book.save(update_fields=['copies_available'])
+        elif not self._state.adding and self.status == 'returned' and self.book:
+            self.book.copies_available = models.F('copies_available') + 1
+            self.book.save(update_fields=['copies_available'])
+
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.user} → {self.book} ({self.status})"
+        title = self.book.title if self.book else "(book deleted)"
+        return f"{self.user} → {title} ({self.status})"
